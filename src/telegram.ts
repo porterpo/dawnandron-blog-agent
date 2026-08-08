@@ -49,6 +49,8 @@ export async function sendDraftNotification(post: GeneratedPost): Promise<void> 
     "",
     "Commands:",
     "✏️ Reply with any edit request to update the draft",
+    "🔄 Reply 'newtopic' to pick a completely new topic",
+    "💡 Reply 'topic: your idea' to use your own topic",
     "❌ Reply 'cancel' to skip this week's post",
     "📋 Reply 'status' to check what's pending",
     "",

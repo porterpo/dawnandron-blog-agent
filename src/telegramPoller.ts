@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { DAWN_AND_RON_BRAND_SYSTEM_PROMPT } from "./prompts/brandVoice.js";
 import { readDraft, saveDraft, deleteDraft } from "./draft.js";
 import { sendTelegramMessage, sendDraftFile } from "./telegram.js";
+import { generatePost } from "./agent.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -69,6 +70,51 @@ async function handleMessage(text: string): Promise<void> {
       await sendTelegramMessage(`✅ Draft pending: "${draft.post.title}"\nWill auto-publish Tuesday 9am EST.`);
     } else {
       await sendTelegramMessage("No draft found. Nothing scheduled to publish.");
+    }
+    return;
+  }
+
+  if (lower === "newtopic") {
+    const draft = await readDraft();
+    if (!draft) {
+      await sendTelegramMessage("No draft found.");
+      return;
+    }
+    await sendTelegramMessage("🔄 Picking a new topic and regenerating the draft...");
+    try {
+      await deleteDraft(draft.sha);
+      const newPost = await generatePost();
+      await saveDraft(newPost);
+      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nAuto-publishes Tuesday 9am EST.`);
+      await sendDraftFile(newPost);
+    } catch (err) {
+      await sendTelegramMessage("❌ Failed to generate new topic. Please try again.");
+      console.error("New topic error:", err);
+    }
+    return;
+  }
+
+  if (lower.startsWith("topic:")) {
+    const customTopic = text.slice("topic:".length).trim();
+    if (!customTopic) {
+      await sendTelegramMessage('Please provide a topic after "topic:"\nExample: topic: Best countries for digital nomads in 2024');
+      return;
+    }
+    const draft = await readDraft();
+    if (!draft) {
+      await sendTelegramMessage("No draft found.");
+      return;
+    }
+    await sendTelegramMessage(`🔄 Generating a new draft for: "${customTopic}"...`);
+    try {
+      await deleteDraft(draft.sha);
+      const newPost = await generatePost(customTopic);
+      await saveDraft(newPost);
+      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nAuto-publishes Tuesday 9am EST.`);
+      await sendDraftFile(newPost);
+    } catch (err) {
+      await sendTelegramMessage("❌ Failed to generate draft. Please try again.");
+      console.error("Custom topic error:", err);
     }
     return;
   }
