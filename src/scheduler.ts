@@ -3,10 +3,10 @@ import cron from "node-cron";
 import { generatePost } from "./agent.js";
 import { publishPost } from "./publisher.js";
 
-// Runs every Sunday at 13:00 UTC (9:00 AM EST / EDT)
-const SCHEDULE = "0 13 * * 0";
+// Runs every Tuesday at 14:00 UTC (9:00 AM EST / EDT)
+const SCHEDULE = "0 14 * * 2";
 
-console.log("Blog agent scheduler started. Posting every Sunday at 9:00 AM EST.");
+console.log("Blog agent scheduler started. Posting every Tuesday at 9:00 AM EST.");
 
 cron.schedule(SCHEDULE, async () => {
   console.log(`\n[${new Date().toISOString()}] Weekly post triggered.`);
