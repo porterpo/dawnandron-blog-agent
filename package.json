@@ -2,12 +2,25 @@
   "name": "dawnandron-blog-agent",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "tsx src/scheduler.ts",
+    "post": "tsx src/index.ts",
+    "schedule": "tsx src/scheduler.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.116.0",
+    "dotenv": "^17.4.2",
+    "node-cron": "^4.6.0",
+    "tsx": "^4.23.11"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^7.0.2"
+  }
 }

@@ -1,0 +1,3 @@
+[deploy]
+startCommand = "npm run schedule"
+restartPolicyType = "always"
