@@ -6,6 +6,8 @@
   "scripts": {
     "start": "tsx src/scheduler.ts",
     "post": "tsx src/index.ts",
+    "draft": "tsx src/index.ts draft",
+    "publish": "tsx src/index.ts publish",
     "schedule": "tsx src/scheduler.ts"
   },
   "keywords": [],
