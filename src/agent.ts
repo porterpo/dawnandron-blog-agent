@@ -3,6 +3,7 @@ import { DAWN_AND_RON_BRAND_SYSTEM_PROMPT } from "./prompts/brandVoice.js";
 import { getTopicPickerPrompt } from "./prompts/topicPrompt.js";
 import { generateHeroImage } from "./imageGenerator.js";
 import { getTopicHistory } from "./topicHistory.js";
+import { researchTrendingTopics } from "./topicResearch.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -15,8 +16,8 @@ export interface GeneratedPost {
 }
 
 async function pickTopic(): Promise<string> {
-  const history = await getTopicHistory();
-  const prompt = getTopicPickerPrompt(history);
+  const [history, research] = await Promise.all([getTopicHistory(), researchTrendingTopics()]);
+  const prompt = getTopicPickerPrompt(history, research);
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
