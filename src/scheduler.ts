@@ -5,6 +5,7 @@ import { publishPost } from "./publisher.js";
 import { saveDraft, readDraft, deleteDraft } from "./draft.js";
 import { sendDraftNotification } from "./telegram.js";
 import { startPolling, stopPolling } from "./telegramPoller.js";
+import { addTopicToHistory } from "./topicHistory.js";
 
 // Monday 9am EST (14:00 UTC) — generate draft, save to GitHub, notify via Telegram, start polling
 cron.schedule("0 14 * * 1", async () => {
@@ -31,6 +32,7 @@ cron.schedule("0 14 * * 2", async () => {
       return;
     }
     await publishPost(draft.post);
+    await addTopicToHistory(draft.post.topic);
     await deleteDraft(draft.sha);
     console.log("Post published and draft cleaned up.");
   } catch (err) {

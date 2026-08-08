@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { DAWN_AND_RON_BRAND_SYSTEM_PROMPT } from "./prompts/brandVoice.js";
-import { TOPIC_PICKER_PROMPT } from "./prompts/topicPrompt.js";
+import { getTopicPickerPrompt } from "./prompts/topicPrompt.js";
 import { generateHeroImage } from "./imageGenerator.js";
+import { getTopicHistory } from "./topicHistory.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -10,13 +11,17 @@ export interface GeneratedPost {
   slug: string;
   content: string;
   imageUrl: string;
+  topic: string;
 }
 
 async function pickTopic(): Promise<string> {
+  const history = await getTopicHistory();
+  const prompt = getTopicPickerPrompt(history);
+
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
     max_tokens: 256,
-    messages: [{ role: "user", content: TOPIC_PICKER_PROMPT }],
+    messages: [{ role: "user", content: prompt }],
   });
 
   const raw = response.content[0].type === "text" ? response.content[0].text : "";
@@ -63,5 +68,5 @@ export async function generatePost(topicOverride?: string): Promise<GeneratedPos
 
   const imageUrl = await generateHeroImage(topic);
 
-  return { title, slug, content, imageUrl };
+  return { title, slug, content, imageUrl, topic };
 }
