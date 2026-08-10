@@ -7,8 +7,8 @@ import { sendDraftNotification } from "./telegram.js";
 import { startPolling, stopPolling } from "./telegramPoller.js";
 import { addTopicToHistory } from "./topicHistory.js";
 
-// Monday 9am EST (14:00 UTC) — generate draft, save to GitHub, notify via Telegram, start polling
-cron.schedule("0 14 * * 1", async () => {
+// Sunday 9am EST (14:00 UTC) — generate draft, save to GitHub, notify via Telegram, start polling
+cron.schedule("0 14 * * 0", async () => {
   console.log(`\n[${new Date().toISOString()}] Generating draft...`);
   try {
     const post = await generatePost();
@@ -21,8 +21,8 @@ cron.schedule("0 14 * * 1", async () => {
   }
 });
 
-// Tuesday 9am EST (14:00 UTC) — publish draft if it exists
-cron.schedule("0 14 * * 2", async () => {
+// Monday 9am EST (14:00 UTC) — publish draft if it exists
+cron.schedule("0 14 * * 1", async () => {
   console.log(`\n[${new Date().toISOString()}] Checking for draft to publish...`);
   stopPolling();
   try {
@@ -49,4 +49,4 @@ void (async () => {
   }
 })();
 
-console.log("Blog agent scheduler started. Drafts Monday 9am EST, publishes Tuesday 9am EST.");
+console.log("Blog agent scheduler started. Drafts Sunday 9am EST, publishes Monday 9am EST.");
