@@ -37,7 +37,14 @@ export async function sendDraftFile(post: GeneratedPost): Promise<void> {
   await telegramPost("sendDocument", form);
 }
 
-export async function sendDraftNotification(post: GeneratedPost): Promise<void> {
+export async function sendDraftImage(buffer: Buffer): Promise<void> {
+  const form = new FormData();
+  form.append("chat_id", chatId());
+  form.append("photo", new Blob([new Uint8Array(buffer)], { type: "image/jpeg" }), "hero.jpg");
+  await telegramPost("sendPhoto", form);
+}
+
+export async function sendDraftNotification(post: GeneratedPost, imageBuffer: Buffer): Promise<void> {
   const preview = post.content.slice(0, 400);
   const message = [
     "📝 New Blog Draft Ready",
@@ -57,6 +64,7 @@ export async function sendDraftNotification(post: GeneratedPost): Promise<void> 
     "Auto-publishes Tuesday 9am EST.",
   ].join("\n");
 
+  await sendDraftImage(imageBuffer);
   await sendTelegramMessage(message);
   await sendDraftFile(post);
   console.log("Telegram notification sent.");

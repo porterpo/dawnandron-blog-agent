@@ -11,9 +11,9 @@ async function run() {
   if (mode === "draft") {
     const topicFlag = args.indexOf("--topic");
     const topic = topicFlag !== -1 ? args[topicFlag + 1] : undefined;
-    const post = await generatePost(topic);
+    const { post, imageBuffer } = await generatePost(topic);
     await saveDraft(post);
-    await sendDraftNotification(post);
+    await sendDraftNotification(post, imageBuffer);
     console.log("Draft saved and sent to Telegram.");
   } else if (mode === "publish") {
     const draft = await readDraft();
@@ -23,7 +23,7 @@ async function run() {
   } else {
     const topicFlag = args.indexOf("--topic");
     const topic = topicFlag !== -1 ? args[topicFlag + 1] : undefined;
-    const post = await generatePost(topic);
+    const { post } = await generatePost(topic);
     await publishPost(post);
   }
 }

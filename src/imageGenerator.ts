@@ -3,7 +3,7 @@ import { buildImagePrompt } from "./prompts/imagePrompt.js";
 
 const MIME_TYPE = "image/jpeg";
 
-export async function generateHeroImage(topic: string): Promise<string> {
+export async function generateHeroImage(topic: string): Promise<{ objectPath: string; buffer: Buffer }> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const apiUrl = process.env.DAWNANDRON_API_URL;
   const apiKey = process.env.DAWNANDRON_API_KEY;
@@ -63,5 +63,6 @@ export async function generateHeroImage(topic: string): Promise<string> {
   }
 
   console.log(`Hero image uploaded: ${objectPath}`);
-  return objectPath;
+  return { objectPath, buffer };
 }
+

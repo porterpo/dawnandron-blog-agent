@@ -46,7 +46,7 @@ function slugify(title: string): string {
     .replace(/\s+/g, "-");
 }
 
-export async function generatePost(topicOverride?: string): Promise<GeneratedPost> {
+export async function generatePost(topicOverride?: string): Promise<{ post: GeneratedPost; imageBuffer: Buffer }> {
   const topic = topicOverride ?? (await pickTopic());
 
   console.log(`\nGenerating post for topic: "${topic}"...`);
@@ -67,7 +67,7 @@ export async function generatePost(topicOverride?: string): Promise<GeneratedPos
   const title = extractTitle(content);
   const slug = slugify(title);
 
-  const imageUrl = await generateHeroImage(topic);
-
-  return { title, slug, content, imageUrl, topic };
+  const { objectPath, buffer } = await generateHeroImage(topic);
+  const post = { title, slug, content, imageUrl: objectPath, topic };
+  return { post, imageBuffer: buffer };
 }

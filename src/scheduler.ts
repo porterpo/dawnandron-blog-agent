@@ -11,9 +11,9 @@ import { addTopicToHistory } from "./topicHistory.js";
 cron.schedule("0 14 * * 0", async () => {
   console.log(`\n[${new Date().toISOString()}] Generating draft...`);
   try {
-    const post = await generatePost();
+    const { post, imageBuffer } = await generatePost();
     await saveDraft(post);
-    await sendDraftNotification(post);
+    await sendDraftNotification(post, imageBuffer);
     await startPolling();
     console.log("Draft saved and sent to Telegram. Listening for replies.");
   } catch (err) {
