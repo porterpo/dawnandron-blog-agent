@@ -1,84 +1,67 @@
+import { GoogleGenAI } from "@google/genai";
 import { buildImagePrompt } from "./prompts/imagePrompt.js";
 
-const REPLICATE_API = "https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions";
-
-interface ReplicatePrediction {
-  id: string;
-  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
-  output: string[] | null;
-  error: string | null;
-  urls: { get: string };
-}
-
-async function poll(url: string, apiKey: string): Promise<ReplicatePrediction> {
-  while (true) {
-    await new Promise((r) => setTimeout(r, 1500));
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    const data: ReplicatePrediction = await res.json();
-    if (data.status === "succeeded" || data.status === "failed" || data.status === "canceled") {
-      return data;
-    }
-  }
-}
+const MIME_TYPE = "image/jpeg";
 
 export async function generateHeroImage(topic: string): Promise<string> {
-  const apiKey = process.env.REPLICATE_API_KEY;
-  if (!apiKey) throw new Error("REPLICATE_API_KEY is not set");
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const apiUrl = process.env.DAWNANDRON_API_URL;
+  const apiKey = process.env.DAWNANDRON_API_KEY;
+
+  if (!geminiKey) throw new Error("GEMINI_API_KEY is not set");
+  if (!apiUrl) throw new Error("DAWNANDRON_API_URL is not set");
+  if (!apiKey) throw new Error("DAWNANDRON_API_KEY is not set");
 
   const prompt = buildImagePrompt(topic);
-  console.log("\nGenerating hero image...");
+  console.log("\nGenerating hero image with Gemini Imagen 3...");
 
-  const createRes = await fetch(REPLICATE_API, {
+  const ai = new GoogleGenAI({ apiKey: geminiKey });
+  const response = await ai.models.generateImages({
+    model: "imagen-3.0-generate-002",
+    prompt,
+    config: {
+      numberOfImages: 1,
+      aspectRatio: "16:9",
+      outputMimeType: MIME_TYPE,
+    },
+  });
+
+  const base64Data = response.generatedImages?.[0]?.image?.imageBytes;
+  if (!base64Data) throw new Error("Gemini returned no image data");
+
+  const buffer = Buffer.from(base64Data, "base64");
+  console.log(`Image generated (${(buffer.length / 1024).toFixed(0)} KB). Uploading to GCS...`);
+
+  const requestUrlRes = await fetch(`${apiUrl}/api/uploads/request-url`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      Prefer: "wait",
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      input: {
-        prompt,
-        num_outputs: 1,
-        aspect_ratio: "16:9",
-        output_format: "webp",
-        output_quality: 80,
-      },
+      name: `hero-${Date.now()}.jpg`,
+      size: buffer.length,
+      contentType: MIME_TYPE,
     }),
   });
 
-  const rawBody = await createRes.text();
-  console.log(`Replicate response status: ${createRes.status}`);
-  console.log(`Replicate raw body: ${rawBody.slice(0, 500)}`);
-
-  if (!createRes.ok) {
-    throw new Error(`Replicate API error (${createRes.status}): ${rawBody}`);
+  if (!requestUrlRes.ok) {
+    const body = await requestUrlRes.text();
+    throw new Error(`Upload URL request failed (${requestUrlRes.status}): ${body}`);
   }
 
-  let prediction: ReplicatePrediction;
-  try {
-    prediction = JSON.parse(rawBody);
-  } catch {
-    throw new Error(`Replicate returned non-JSON (${createRes.status}): ${rawBody.slice(0, 500)}`);
+  const { uploadURL, objectPath } = await requestUrlRes.json();
+
+  const putRes = await fetch(uploadURL, {
+    method: "PUT",
+    headers: { "Content-Type": MIME_TYPE },
+    body: buffer,
+  });
+
+  if (!putRes.ok) {
+    throw new Error(`GCS upload failed (${putRes.status})`);
   }
 
-  if (prediction.error) {
-    throw new Error(`Replicate prediction error: ${prediction.error}`);
-  }
-
-  if (prediction.status !== "succeeded") {
-    if (!prediction.urls?.get) {
-      throw new Error(`Unexpected Replicate response: ${JSON.stringify(prediction)}`);
-    }
-    prediction = await poll(prediction.urls.get, apiKey);
-  }
-
-  if (prediction.status !== "succeeded" || !prediction.output?.[0]) {
-    throw new Error(`Image generation failed: ${prediction.error ?? "unknown error"}`);
-  }
-
-  const imageUrl = prediction.output[0];
-  console.log(`Hero image ready: ${imageUrl}`);
-  return imageUrl;
+  console.log(`Hero image uploaded: ${objectPath}`);
+  return objectPath;
 }
