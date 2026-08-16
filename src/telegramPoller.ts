@@ -3,6 +3,8 @@ import { DAWN_AND_RON_BRAND_SYSTEM_PROMPT } from "./prompts/brandVoice.js";
 import { readDraft, saveDraft, deleteDraft } from "./draft.js";
 import { sendTelegramMessage, sendDraftFile, sendDraftImage } from "./telegram.js";
 import { generatePost } from "./agent.js";
+import { publishPost } from "./publisher.js";
+import { addTopicToHistory } from "./topicHistory.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -53,6 +55,26 @@ async function applyEdit(content: string, editRequest: string): Promise<string> 
 async function handleMessage(text: string): Promise<void> {
   const lower = text.trim().toLowerCase();
 
+  if (lower === "approve") {
+    const draft = await readDraft();
+    if (!draft) {
+      await sendTelegramMessage("No draft found to approve.");
+      return;
+    }
+    await sendTelegramMessage("🚀 Publishing now...");
+    try {
+      await publishPost(draft.post);
+      await addTopicToHistory(draft.post.topic);
+      await deleteDraft(draft.sha);
+      stopPolling();
+      await sendTelegramMessage(`✅ Published: "${draft.post.title}"`);
+    } catch (err) {
+      await sendTelegramMessage("❌ Publish failed. Please try again.");
+      console.error("Approve publish error:", err);
+    }
+    return;
+  }
+
   if (lower === "cancel") {
     const draft = await readDraft();
     if (!draft) {
@@ -60,14 +82,15 @@ async function handleMessage(text: string): Promise<void> {
       return;
     }
     await deleteDraft(draft.sha);
-    await sendTelegramMessage("❌ Draft cancelled. Nothing will publish this Tuesday.");
+    stopPolling();
+    await sendTelegramMessage("❌ Draft cancelled.");
     return;
   }
 
   if (lower === "status") {
     const draft = await readDraft();
     if (draft) {
-      await sendTelegramMessage(`✅ Draft pending: "${draft.post.title}"\nWill auto-publish Tuesday 9am EST.`);
+      await sendTelegramMessage(`✅ Draft pending: "${draft.post.title}"\nReply "approve" to publish.`);
     } else {
       await sendTelegramMessage("No draft found. Nothing scheduled to publish.");
     }
@@ -86,7 +109,7 @@ async function handleMessage(text: string): Promise<void> {
       const { post: newPost, imageBuffer } = await generatePost();
       await saveDraft(newPost);
       await sendDraftImage(imageBuffer);
-      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nAuto-publishes Tuesday 9am EST.`);
+      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
       await sendDraftFile(newPost);
     } catch (err) {
       await sendTelegramMessage("❌ Failed to generate new topic. Please try again.");
@@ -112,7 +135,7 @@ async function handleMessage(text: string): Promise<void> {
       const { post: newPost, imageBuffer } = await generatePost(customTopic);
       await saveDraft(newPost);
       await sendDraftImage(imageBuffer);
-      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nAuto-publishes Tuesday 9am EST.`);
+      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
       await sendDraftFile(newPost);
     } catch (err) {
       await sendTelegramMessage("❌ Failed to generate draft. Please try again.");

@@ -1,14 +1,12 @@
 import "dotenv/config";
 import cron from "node-cron";
 import { generatePost } from "./agent.js";
-import { publishPost } from "./publisher.js";
-import { saveDraft, readDraft, deleteDraft } from "./draft.js";
+import { saveDraft, readDraft } from "./draft.js";
 import { sendDraftNotification } from "./telegram.js";
-import { startPolling, stopPolling } from "./telegramPoller.js";
-import { addTopicToHistory } from "./topicHistory.js";
+import { startPolling } from "./telegramPoller.js";
 
-// Sunday 9am EST (14:00 UTC) — generate draft, save to GitHub, notify via Telegram, start polling
-cron.schedule("0 14 * * 0", async () => {
+// Monday 9am EST (14:00 UTC) — generate draft, save to GitHub, notify via Telegram, start polling
+cron.schedule("0 14 * * 1", async () => {
   console.log(`\n[${new Date().toISOString()}] Generating draft...`);
   try {
     const { post, imageBuffer } = await generatePost();
@@ -21,25 +19,6 @@ cron.schedule("0 14 * * 0", async () => {
   }
 });
 
-// Monday 9am EST (14:00 UTC) — publish draft if it exists
-cron.schedule("0 14 * * 1", async () => {
-  console.log(`\n[${new Date().toISOString()}] Checking for draft to publish...`);
-  stopPolling();
-  try {
-    const draft = await readDraft();
-    if (!draft) {
-      console.log("No draft found — nothing to publish this week.");
-      return;
-    }
-    await publishPost(draft.post);
-    await addTopicToHistory(draft.post.topic);
-    await deleteDraft(draft.sha);
-    console.log("Post published and draft cleaned up.");
-  } catch (err) {
-    console.error("Scheduled publish failed:", err);
-  }
-});
-
 // On startup, resume polling if a draft is already pending (e.g. after Railway restart)
 void (async () => {
   const draft = await readDraft();
@@ -49,4 +28,4 @@ void (async () => {
   }
 })();
 
-console.log("Blog agent scheduler started. Drafts Sunday 9am EST, publishes Monday 9am EST.");
+console.log("Blog agent scheduler started. Drafts Monday 9am EST, publishes on approval via Telegram.");
