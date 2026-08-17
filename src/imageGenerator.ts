@@ -1,7 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 import { buildImagePrompt } from "./prompts/imagePrompt.js";
 
 const MIME_TYPE = "image/jpeg";
+const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
 
 export async function generateHeroImage(topic: string): Promise<{ objectPath: string; buffer: Buffer }> {
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -13,20 +13,27 @@ export async function generateHeroImage(topic: string): Promise<{ objectPath: st
   if (!apiKey) throw new Error("DAWNANDRON_API_KEY is not set");
 
   const prompt = buildImagePrompt(topic);
-  console.log("\nGenerating hero image with Gemini Imagen 3...");
+  console.log("\nGenerating hero image with Gemini...");
 
-  const ai = new GoogleGenAI({ apiKey: geminiKey });
-  const response = await ai.models.generateImages({
-    model: "imagen-3.0-generate-002",
-    prompt,
-    config: {
-      numberOfImages: 1,
-      aspectRatio: "16:9",
-      outputMimeType: MIME_TYPE,
-    },
-  });
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${geminiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"] },
+      }),
+    }
+  );
 
-  const base64Data = response.generatedImages?.[0]?.image?.imageBytes;
+  if (!geminiRes.ok) throw new Error(`Gemini image error (${geminiRes.status}): ${await geminiRes.text()}`);
+
+  const geminiData = await geminiRes.json() as {
+    candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { data?: string; mimeType?: string } }> } }>;
+  };
+
+  const base64Data = geminiData.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
   if (!base64Data) throw new Error("Gemini returned no image data");
 
   const buffer = Buffer.from(base64Data, "base64");
