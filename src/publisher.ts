@@ -1,4 +1,5 @@
 import type { GeneratedPost } from "./agent.js";
+import { generateHeroImage } from "./imageGenerator.js";
 
 const MIME_TYPE = "image/jpeg";
 
@@ -33,7 +34,12 @@ export async function publishPost(post: GeneratedPost): Promise<void> {
     throw new Error("DAWNANDRON_API_URL and DAWNANDRON_API_KEY must be set");
   }
 
-  const imageUrl = post.imageUrl;
+  let imageUrl = post.imageUrl;
+  if (!imageUrl) {
+    console.log("\nRegenerating and uploading hero image...");
+    const { buffer } = await generateHeroImage(post.topic);
+    imageUrl = await uploadImageToGCS(buffer.toString("base64"), apiUrl, apiKey);
+  }
 
   console.log(`\nPublishing "${post.title}" to ${apiUrl}...`);
 

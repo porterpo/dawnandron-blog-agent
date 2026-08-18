@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { generatePost } from "./agent.js";
-import { publishPost, uploadImageToGCS } from "./publisher.js";
+import { publishPost } from "./publisher.js";
 import { saveDraft, readDraft, deleteDraft } from "./draft.js";
 import { sendDraftNotification } from "./telegram.js";
 
@@ -12,10 +12,6 @@ async function run() {
     const topicFlag = args.indexOf("--topic");
     const topic = topicFlag !== -1 ? args[topicFlag + 1] : undefined;
     const { post, imageBuffer } = await generatePost(topic);
-    const apiUrl = process.env.DAWNANDRON_API_URL!;
-    const apiKey = process.env.DAWNANDRON_API_KEY!;
-    console.log("\nUploading hero image to GCS...");
-    post.imageUrl = await uploadImageToGCS(imageBuffer.toString("base64"), apiUrl, apiKey);
     await saveDraft(post);
     await sendDraftNotification(post, imageBuffer);
     console.log("Draft saved and sent to Telegram.");
