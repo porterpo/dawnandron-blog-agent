@@ -25,13 +25,13 @@ cron.schedule("0 14 * * 1", async () => {
   }
 });
 
-// On startup, resume polling if a draft is already pending (e.g. after Railway restart)
+// Always start polling on startup so Telegram commands are handled at any time
 void (async () => {
   const draft = await readDraft();
   if (draft) {
-    console.log(`Found pending draft: "${draft.post.title}". Resuming Telegram polling.`);
-    await startPolling();
+    console.log(`Found pending draft: "${draft.post.title}".`);
   }
+  await startPolling();
 })();
 
 console.log("Blog agent scheduler started. Drafts Monday 9am EST, publishes on approval via Telegram.");
