@@ -1,11 +1,42 @@
 import type { GeneratedPost } from "./agent.js";
 
+const MIME_TYPE = "image/jpeg";
+
+async function uploadImageToGCS(base64: string, apiUrl: string, apiKey: string): Promise<string> {
+  const buffer = Buffer.from(base64, "base64");
+
+  const requestUrlRes = await fetch(`${apiUrl}/api/uploads/request-url`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ name: `hero-${Date.now()}.jpg`, size: buffer.length, contentType: MIME_TYPE }),
+  });
+  if (!requestUrlRes.ok) throw new Error(`Upload URL request failed (${requestUrlRes.status}): ${await requestUrlRes.text()}`);
+
+  const { uploadURL, objectPath } = await requestUrlRes.json();
+
+  const putRes = await fetch(uploadURL, {
+    method: "PUT",
+    headers: { "Content-Type": MIME_TYPE },
+    body: buffer,
+  });
+  if (!putRes.ok) throw new Error(`GCS upload failed (${putRes.status})`);
+
+  console.log(`Hero image uploaded: ${objectPath}`);
+  return objectPath;
+}
+
 export async function publishPost(post: GeneratedPost): Promise<void> {
   const apiUrl = process.env.DAWNANDRON_API_URL;
   const apiKey = process.env.DAWNANDRON_API_KEY;
 
   if (!apiUrl || !apiKey) {
     throw new Error("DAWNANDRON_API_URL and DAWNANDRON_API_KEY must be set");
+  }
+
+  let imageUrl = post.imageUrl;
+  if (post.imageBase64 && !imageUrl) {
+    console.log("\nUploading hero image to GCS...");
+    imageUrl = await uploadImageToGCS(post.imageBase64, apiUrl, apiKey);
   }
 
   console.log(`\nPublishing "${post.title}" to ${apiUrl}...`);
@@ -20,7 +51,7 @@ export async function publishPost(post: GeneratedPost): Promise<void> {
       title: post.title,
       slug: post.slug,
       content: post.content,
-      imageUrl: post.imageUrl,
+      imageUrl,
       publishedAt: new Date().toISOString(),
     }),
   });

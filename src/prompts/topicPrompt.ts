@@ -1,3 +1,5 @@
+const CURRENT_YEAR = new Date().getFullYear();
+
 export function getTopicPickerPrompt(previousTopics: string[], research: string): string {
   const avoidSection =
     previousTopics.length > 0
@@ -8,7 +10,7 @@ export function getTopicPickerPrompt(previousTopics: string[], research: string)
     ? `\n\nTrending questions and themes from current web research — use these to find timely, relevant angles:\n${research}`
     : "";
 
-  return `You are an SEO strategist for Dawn & Ron (dawnandron.com), a site that serves non-U.S. residents, remote entrepreneurs, digital nomads, and travel enthusiasts.
+  return `You are an SEO strategist for Dawn & Ron (dawnandron.com), a site that serves non-U.S. residents, remote entrepreneurs, digital nomads, and travel enthusiasts. The current year is ${CURRENT_YEAR} — all topic suggestions must be framed around ${CURRENT_YEAR} and must NOT reference ${CURRENT_YEAR - 1} as the current year.
 
 Generate ONE blog post topic that:
 - Has strong SEO potential (specific, searchable, long-tail friendly)

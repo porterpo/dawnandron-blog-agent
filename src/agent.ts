@@ -12,6 +12,7 @@ export interface GeneratedPost {
   slug: string;
   content: string;
   imageUrl: string;
+  imageBase64?: string;
   topic: string;
 }
 
@@ -67,7 +68,7 @@ export async function generatePost(topicOverride?: string): Promise<{ post: Gene
   const title = extractTitle(content);
   const slug = slugify(title);
 
-  const { objectPath, buffer } = await generateHeroImage(topic);
-  const post = { title, slug, content, imageUrl: objectPath, topic };
+  const { buffer } = await generateHeroImage(topic);
+  const post = { title, slug, content, imageUrl: "", imageBase64: buffer.toString("base64"), topic };
   return { post, imageBuffer: buffer };
 }
