@@ -53,7 +53,12 @@ export async function readDraft(): Promise<DraftData | null> {
   }
   const data = (await response.json()) as { content: string; sha: string };
   const decoded = Buffer.from(data.content, "base64").toString("utf-8");
-  return { post: JSON.parse(decoded) as GeneratedPost, sha: data.sha };
+  try {
+    return { post: JSON.parse(decoded) as GeneratedPost, sha: data.sha };
+  } catch {
+    console.warn("Draft file exists but contains invalid JSON — treating as no draft.");
+    return null;
+  }
 }
 
 export async function deleteDraft(sha: string): Promise<void> {

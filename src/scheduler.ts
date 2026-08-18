@@ -27,9 +27,13 @@ cron.schedule("0 14 * * 1", async () => {
 
 // Always start polling on startup so Telegram commands are handled at any time
 void (async () => {
-  const draft = await readDraft();
-  if (draft) {
-    console.log(`Found pending draft: "${draft.post.title}".`);
+  try {
+    const draft = await readDraft();
+    if (draft) {
+      console.log(`Found pending draft: "${draft.post.title}".`);
+    }
+  } catch (err) {
+    console.error("Failed to read draft on startup:", err);
   }
   await startPolling();
 })();
