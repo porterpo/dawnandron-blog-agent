@@ -55,6 +55,7 @@ export async function sendDraftNotification(post: GeneratedPost, imageBuffer: Bu
     preview + "...",
     "",
     "Commands:",
+    "✅ Reply 'approve' to publish immediately",
     "✏️ Reply with any edit request to update the draft",
     "🔄 Reply 'newtopic' to pick a completely new topic",
     "💡 Reply 'topic: your idea' to use your own topic",
