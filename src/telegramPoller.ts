@@ -184,8 +184,11 @@ export async function startPolling(): Promise<void> {
         pollingOffset = update.update_id + 1;
         const text = update.message?.text;
         const fromChat = update.message?.chat.id.toString();
+        console.log(`[Telegram] update_id=${update.update_id} fromChat=${fromChat} authorizedChat=${authorizedChatId} text="${text}"`);
         if (text && fromChat === authorizedChatId) {
           await handleMessage(text);
+        } else if (text) {
+          console.log(`[Telegram] Message ignored — chat ID mismatch or no text`);
         }
       }
     }
