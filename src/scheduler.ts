@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cron from "node-cron";
 import { generatePost } from "./agent.js";
+import { uploadImageToGCS } from "./publisher.js";
 import { saveDraft, readDraft } from "./draft.js";
 import { sendDraftNotification, sendTelegramMessage } from "./telegram.js";
 import { startPolling } from "./telegramPoller.js";
@@ -10,6 +11,10 @@ cron.schedule("0 14 * * 1", async () => {
   console.log(`\n[${new Date().toISOString()}] Generating draft...`);
   try {
     const { post, imageBuffer } = await generatePost();
+    const apiUrl = process.env.DAWNANDRON_API_URL!;
+    const apiKey = process.env.DAWNANDRON_API_KEY!;
+    console.log("\nUploading hero image to GCS...");
+    post.imageUrl = await uploadImageToGCS(imageBuffer.toString("base64"), apiUrl, apiKey);
     await saveDraft(post);
     await sendDraftNotification(post, imageBuffer);
     await startPolling();

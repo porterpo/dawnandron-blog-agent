@@ -2,7 +2,7 @@ import type { GeneratedPost } from "./agent.js";
 
 const MIME_TYPE = "image/jpeg";
 
-async function uploadImageToGCS(base64: string, apiUrl: string, apiKey: string): Promise<string> {
+export async function uploadImageToGCS(base64: string, apiUrl: string, apiKey: string): Promise<string> {
   const buffer = Buffer.from(base64, "base64");
 
   const requestUrlRes = await fetch(`${apiUrl}/api/uploads/request-url`, {
@@ -33,11 +33,7 @@ export async function publishPost(post: GeneratedPost): Promise<void> {
     throw new Error("DAWNANDRON_API_URL and DAWNANDRON_API_KEY must be set");
   }
 
-  let imageUrl = post.imageUrl;
-  if (post.imageBase64 && !imageUrl) {
-    console.log("\nUploading hero image to GCS...");
-    imageUrl = await uploadImageToGCS(post.imageBase64, apiUrl, apiKey);
-  }
+  const imageUrl = post.imageUrl;
 
   console.log(`\nPublishing "${post.title}" to ${apiUrl}...`);
 

@@ -3,7 +3,7 @@ import { DAWN_AND_RON_BRAND_SYSTEM_PROMPT } from "./prompts/brandVoice.js";
 import { readDraft, saveDraft, deleteDraft } from "./draft.js";
 import { sendTelegramMessage, sendDraftFile, sendDraftImage } from "./telegram.js";
 import { generatePost } from "./agent.js";
-import { publishPost } from "./publisher.js";
+import { publishPost, uploadImageToGCS } from "./publisher.js";
 import { addTopicToHistory } from "./topicHistory.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -107,6 +107,7 @@ async function handleMessage(text: string): Promise<void> {
     try {
       await deleteDraft(draft.sha);
       const { post: newPost, imageBuffer } = await generatePost();
+      newPost.imageUrl = await uploadImageToGCS(imageBuffer.toString("base64"), process.env.DAWNANDRON_API_URL!, process.env.DAWNANDRON_API_KEY!);
       await saveDraft(newPost);
       await sendDraftImage(imageBuffer);
       await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
@@ -133,6 +134,7 @@ async function handleMessage(text: string): Promise<void> {
     try {
       await deleteDraft(draft.sha);
       const { post: newPost, imageBuffer } = await generatePost(customTopic);
+      newPost.imageUrl = await uploadImageToGCS(imageBuffer.toString("base64"), process.env.DAWNANDRON_API_URL!, process.env.DAWNANDRON_API_KEY!);
       await saveDraft(newPost);
       await sendDraftImage(imageBuffer);
       await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
