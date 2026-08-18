@@ -69,7 +69,8 @@ async function handleMessage(text: string): Promise<void> {
       stopPolling();
       await sendTelegramMessage(`✅ Published: "${draft.post.title}"`);
     } catch (err) {
-      await sendTelegramMessage("❌ Publish failed. Please try again.");
+      const msg = err instanceof Error ? err.message : String(err);
+      await sendTelegramMessage(`❌ Publish failed:\n${msg}`);
       console.error("Approve publish error:", err);
     }
     return;
