@@ -14,11 +14,12 @@ export interface GeneratedPost {
   imageUrl: string;
   imageBase64?: string;
   topic: string;
+  pillar: string;
 }
 
-async function pickTopic(): Promise<string> {
-  const [history, research] = await Promise.all([getTopicHistory(), researchTrendingTopics()]);
-  const prompt = getTopicPickerPrompt(history, research);
+async function pickTopic(): Promise<{ topic: string; pillar: string }> {
+  const [{ topics, lastPillar }, research] = await Promise.all([getTopicHistory(), researchTrendingTopics()]);
+  const prompt = getTopicPickerPrompt(topics, lastPillar, research);
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -28,10 +29,11 @@ async function pickTopic(): Promise<string> {
 
   const raw = response.content[0].type === "text" ? response.content[0].text : "";
   const text = raw.replace(/^```(?:json)?\n?/m, "").replace(/```$/m, "").trim();
-  const parsed = JSON.parse(text);
+  const parsed = JSON.parse(text) as { topic: string; angle: string; pillar: string };
   console.log(`Auto-selected topic: ${parsed.topic}`);
+  console.log(`Pillar: ${parsed.pillar}`);
   console.log(`Angle: ${parsed.angle}`);
-  return parsed.topic;
+  return { topic: parsed.topic, pillar: parsed.pillar };
 }
 
 function extractTitle(markdown: string): string {
@@ -47,8 +49,10 @@ function slugify(title: string): string {
     .replace(/\s+/g, "-");
 }
 
-export async function generatePost(topicOverride?: string): Promise<{ post: GeneratedPost; imageBuffer: Buffer }> {
-  const topic = topicOverride ?? (await pickTopic());
+export async function generatePost(topicOverride?: string, pillarOverride?: string): Promise<{ post: GeneratedPost; imageBuffer: Buffer }> {
+  const { topic, pillar } = topicOverride
+    ? { topic: topicOverride, pillar: pillarOverride ?? "unknown" }
+    : await pickTopic();
 
   console.log(`\nGenerating post for topic: "${topic}"...`);
 
@@ -69,6 +73,6 @@ export async function generatePost(topicOverride?: string): Promise<{ post: Gene
   const slug = slugify(title);
 
   const { buffer } = await generateHeroImage(topic);
-  const post = { title, slug, content, imageUrl: "", imageBase64: buffer.toString("base64"), topic };
+  const post = { title, slug, content, imageUrl: "", imageBase64: buffer.toString("base64"), topic, pillar };
   return { post, imageBuffer: buffer };
 }

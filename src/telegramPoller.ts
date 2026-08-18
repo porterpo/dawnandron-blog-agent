@@ -64,7 +64,7 @@ async function handleMessage(text: string): Promise<void> {
     await sendTelegramMessage("🚀 Publishing now...");
     try {
       await publishPost(draft.post);
-      await addTopicToHistory(draft.post.topic);
+      await addTopicToHistory(draft.post.topic, draft.post.pillar ?? "unknown");
       await deleteDraft(draft.sha);
       stopPolling();
       await sendTelegramMessage(`✅ Published: "${draft.post.title}"`);

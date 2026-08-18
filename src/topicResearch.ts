@@ -28,11 +28,14 @@ async function searchTavily(query: string): Promise<string[]> {
 }
 
 export async function researchTrendingTopics(): Promise<string> {
+  const currentYear = new Date().getFullYear();
   const queries = [
-    "non-US resident open US LLC bank account questions 2024",
-    "global entrepreneur US business formation common problems",
-    "digital nomad lifestyle travel tips remote work trending",
-    "best countries digital nomads 2024 visa banking",
+    `US LLC formation non-residents questions ${currentYear}`,
+    `digital nomad best destinations ${currentYear} visa cost of living`,
+    `remote work productivity routines tips ${currentYear}`,
+    `nomad banking multi-currency cards international transfers ${currentYear}`,
+    `travel hacks budget travel remote workers ${currentYear}`,
+    `non-US resident US business tax compliance ${currentYear}`,
   ];
 
   const sections: string[] = [];
