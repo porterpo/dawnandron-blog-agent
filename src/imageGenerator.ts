@@ -1,15 +1,28 @@
-import { buildImagePrompt } from "./prompts/imagePrompt.js";
+import Anthropic from "@anthropic-ai/sdk";
+import { buildImageDescriptionPrompt, wrapImagePrompt } from "./prompts/imagePrompt.js";
 
 const MIME_TYPE = "image/jpeg";
 const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
+
+async function buildTopicImagePrompt(topic: string): Promise<string> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 256,
+    messages: [{ role: "user", content: buildImageDescriptionPrompt(topic) }],
+  });
+  const description = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+  console.log(`Image concept: ${description}`);
+  return wrapImagePrompt(description);
+}
 
 export async function generateHeroImage(topic: string): Promise<{ buffer: Buffer }> {
   const geminiKey = process.env.GEMINI_API_KEY;
 
   if (!geminiKey) throw new Error("GEMINI_API_KEY is not set");
 
-  const prompt = buildImagePrompt(topic);
   console.log("\nGenerating hero image with Gemini...");
+  const prompt = await buildTopicImagePrompt(topic);
 
   const geminiRes = await fetch(
     `https://generativelanguage.googleapis.com/v1/models/${GEMINI_IMAGE_MODEL}:generateContent?key=${geminiKey}`,
