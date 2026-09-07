@@ -16,7 +16,7 @@ export interface GeneratedPost {
   pillar: string;
 }
 
-async function pickTopic(): Promise<{ topic: string; pillar: string }> {
+export async function pickTopic(): Promise<{ topic: string; pillar: string }> {
   const [{ topics, lastPillar }, research] = await Promise.all([getTopicHistory(), researchTrendingTopics()]);
   const prompt = getTopicPickerPrompt(topics, lastPillar, research);
 
@@ -48,11 +48,7 @@ function slugify(title: string): string {
     .replace(/\s+/g, "-");
 }
 
-export async function generatePost(topicOverride?: string, pillarOverride?: string): Promise<{ post: GeneratedPost; imageBuffer: Buffer }> {
-  const { topic, pillar } = topicOverride
-    ? { topic: topicOverride, pillar: pillarOverride ?? "unknown" }
-    : await pickTopic();
-
+export async function generatePostContent(topic: string, pillar: string): Promise<GeneratedPost> {
   console.log(`\nGenerating post for topic: "${topic}"...`);
 
   const response = await client.messages.create({
@@ -70,8 +66,15 @@ export async function generatePost(topicOverride?: string, pillarOverride?: stri
   const content = response.content[0].type === "text" ? response.content[0].text : "";
   const title = extractTitle(content);
   const slug = slugify(title);
+  return { title, slug, content, imageUrl: "", topic, pillar };
+}
 
+export async function generatePost(topicOverride?: string, pillarOverride?: string): Promise<{ post: GeneratedPost; imageBuffer: Buffer }> {
+  const { topic, pillar } = topicOverride
+    ? { topic: topicOverride, pillar: pillarOverride ?? "unknown" }
+    : await pickTopic();
+
+  const post = await generatePostContent(topic, pillar);
   const { buffer } = await generateHeroImage(topic);
-  const post = { title, slug, content, imageUrl: "", topic, pillar };
   return { post, imageBuffer: buffer };
 }
