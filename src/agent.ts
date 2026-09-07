@@ -35,12 +35,12 @@ export async function pickTopic(): Promise<{ topic: string; pillar: string }> {
   return { topic: parsed.topic, pillar: parsed.pillar };
 }
 
-function extractTitle(markdown: string): string {
+export function extractTitle(markdown: string): string {
   const match = markdown.match(/^#\s+(.+)$/m);
   return match ? match[1].trim() : "Untitled Post";
 }
 
-function slugify(title: string): string {
+export function slugify(title: string): string {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, "")

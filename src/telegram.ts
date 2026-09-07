@@ -44,8 +44,35 @@ export async function sendDraftImage(buffer: Buffer): Promise<void> {
   await telegramPost("sendPhoto", form);
 }
 
-export async function sendDraftNotification(post: GeneratedPost, imageBuffer: Buffer): Promise<void> {
+export interface FactCheckSummary {
+  corrections: Array<{ was: string; now: string }>;
+  uncertain: string[];
+  rewritten: boolean;
+}
+
+export async function sendDraftNotification(
+  post: GeneratedPost,
+  imageBuffer: Buffer,
+  factCheck?: FactCheckSummary
+): Promise<void> {
   const preview = post.content.slice(0, 400);
+  const factLines: string[] = [];
+  if (factCheck) {
+    if (factCheck.rewritten && factCheck.corrections.length > 0) {
+      factLines.push("", "🔧 Fact-check corrections applied:");
+      for (const c of factCheck.corrections) {
+        factLines.push(`• "${c.was}" → ${c.now}`);
+      }
+    } else if (factCheck.corrections.length === 0 && factCheck.uncertain.length === 0) {
+      factLines.push("", "✅ Fact-check: all claims verified.");
+    }
+    if (factCheck.uncertain.length > 0) {
+      factLines.push("", "⚠️ Fact-check could not verify (please review):");
+      for (const u of factCheck.uncertain) {
+        factLines.push(`• ${u}`);
+      }
+    }
+  }
   const message = [
     "📝 New Blog Draft Ready",
     "",
@@ -53,6 +80,7 @@ export async function sendDraftNotification(post: GeneratedPost, imageBuffer: Bu
     "",
     "Preview:",
     preview + "...",
+    ...factLines,
     "",
     "Commands:",
     "✅ Reply 'approve' to publish immediately",

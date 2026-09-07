@@ -5,6 +5,7 @@ import { sendTelegramMessage, sendDraftFile, sendDraftImage } from "./telegram.j
 import { generatePost } from "./agent.js";
 import { publishPost } from "./publisher.js";
 import { addTopicToHistory } from "./topicHistory.js";
+import { factCheckAndCorrect, type FactCheckResult } from "./factChecker.js";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -35,6 +36,22 @@ async function getUpdates(offset: number, timeout = 30): Promise<TelegramUpdate[
   } catch {
     return [];
   }
+}
+
+function formatFactCheckSummary(factCheck: FactCheckResult): string | null {
+  const lines: string[] = [];
+  if (factCheck.rewritten && factCheck.corrections.length > 0) {
+    lines.push("🔧 Fact-check corrections applied:");
+    for (const c of factCheck.corrections) lines.push(`• "${c.was}" → ${c.now}`);
+  } else if (factCheck.corrections.length === 0 && factCheck.uncertain.length === 0) {
+    lines.push("✅ Fact-check: all claims verified.");
+  }
+  if (factCheck.uncertain.length > 0) {
+    if (lines.length > 0) lines.push("");
+    lines.push("⚠️ Fact-check could not verify (please review):");
+    for (const u of factCheck.uncertain) lines.push(`• ${u}`);
+  }
+  return lines.length > 0 ? lines.join("\n") : null;
 }
 
 async function applyEdit(content: string, editRequest: string): Promise<string> {
@@ -108,10 +125,13 @@ async function handleMessage(text: string): Promise<void> {
     try {
       await deleteDraft(draft.sha);
       const { post: newPost, imageBuffer } = await generatePost();
-      await saveDraft(newPost);
+      const factCheck = await factCheckAndCorrect(newPost);
+      await saveDraft(factCheck.post);
       await sendDraftImage(imageBuffer);
-      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
-      await sendDraftFile(newPost);
+      const summary = formatFactCheckSummary(factCheck);
+      const header = `✅ New draft ready!\n\nTitle: ${factCheck.post.title}`;
+      await sendTelegramMessage(summary ? `${header}\n\n${summary}\n\nReply "approve" to publish.` : `${header}\n\nReply "approve" to publish.`);
+      await sendDraftFile(factCheck.post);
     } catch (err) {
       await sendTelegramMessage("❌ Failed to generate new topic. Please try again.");
       console.error("New topic error:", err);
@@ -134,10 +154,13 @@ async function handleMessage(text: string): Promise<void> {
     try {
       await deleteDraft(draft.sha);
       const { post: newPost, imageBuffer } = await generatePost(customTopic);
-      await saveDraft(newPost);
+      const factCheck = await factCheckAndCorrect(newPost);
+      await saveDraft(factCheck.post);
       await sendDraftImage(imageBuffer);
-      await sendTelegramMessage(`✅ New draft ready!\n\nTitle: ${newPost.title}\n\nReply "approve" to publish.`);
-      await sendDraftFile(newPost);
+      const summary = formatFactCheckSummary(factCheck);
+      const header = `✅ New draft ready!\n\nTitle: ${factCheck.post.title}`;
+      await sendTelegramMessage(summary ? `${header}\n\n${summary}\n\nReply "approve" to publish.` : `${header}\n\nReply "approve" to publish.`);
+      await sendDraftFile(factCheck.post);
     } catch (err) {
       await sendTelegramMessage("❌ Failed to generate draft. Please try again.");
       console.error("Custom topic error:", err);

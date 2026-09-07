@@ -5,6 +5,7 @@ import { generateHeroImage } from "./imageGenerator.js";
 import { saveDraft, readDraft } from "./draft.js";
 import { sendDraftNotification, sendTelegramMessage } from "./telegram.js";
 import { startPolling } from "./telegramPoller.js";
+import { factCheckAndCorrect } from "./factChecker.js";
 
 async function stage<T>(name: string, fn: () => Promise<T>): Promise<T> {
   try {
@@ -24,9 +25,10 @@ cron.schedule("0 14 * * 1", async () => {
   try {
     const { topic, pillar } = await stage("pick-topic", () => pickTopic());
     const post = await stage("generate-content", () => generatePostContent(topic, pillar));
+    const factCheck = await stage("fact-check", () => factCheckAndCorrect(post));
     const { buffer: imageBuffer } = await stage("generate-image", () => generateHeroImage(topic));
-    await stage("save-draft", () => saveDraft(post));
-    await stage("notify-telegram", () => sendDraftNotification(post, imageBuffer));
+    await stage("save-draft", () => saveDraft(factCheck.post));
+    await stage("notify-telegram", () => sendDraftNotification(factCheck.post, imageBuffer, factCheck));
     await startPolling();
     console.log("Draft saved and sent to Telegram. Listening for replies.");
   } catch (err) {

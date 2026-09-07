@@ -4,6 +4,7 @@ import { generateHeroImage } from "./imageGenerator.js";
 import { publishPost } from "./publisher.js";
 import { saveDraft, readDraft, deleteDraft } from "./draft.js";
 import { sendDraftNotification } from "./telegram.js";
+import { factCheckAndCorrect } from "./factChecker.js";
 
 async function run() {
   const args = process.argv.slice(2);
@@ -13,8 +14,9 @@ async function run() {
     const topicFlag = args.indexOf("--topic");
     const topic = topicFlag !== -1 ? args[topicFlag + 1] : undefined;
     const { post, imageBuffer } = await generatePost(topic);
-    await saveDraft(post);
-    await sendDraftNotification(post, imageBuffer);
+    const factCheck = await factCheckAndCorrect(post);
+    await saveDraft(factCheck.post);
+    await sendDraftNotification(factCheck.post, imageBuffer, factCheck);
     console.log("Draft saved and sent to Telegram.");
   } else if (mode === "notify") {
     const draft = await readDraft();
@@ -31,7 +33,8 @@ async function run() {
     const topicFlag = args.indexOf("--topic");
     const topic = topicFlag !== -1 ? args[topicFlag + 1] : undefined;
     const { post } = await generatePost(topic);
-    await publishPost(post);
+    const factCheck = await factCheckAndCorrect(post);
+    await publishPost(factCheck.post);
   }
 }
 
