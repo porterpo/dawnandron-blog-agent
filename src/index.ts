@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { generatePost } from "./agent.js";
+import { generateHeroImage } from "./imageGenerator.js";
 import { publishPost } from "./publisher.js";
 import { saveDraft, readDraft, deleteDraft } from "./draft.js";
 import { sendDraftNotification } from "./telegram.js";
@@ -15,6 +16,12 @@ async function run() {
     await saveDraft(post);
     await sendDraftNotification(post, imageBuffer);
     console.log("Draft saved and sent to Telegram.");
+  } else if (mode === "notify") {
+    const draft = await readDraft();
+    if (!draft) { console.log("No draft found."); return; }
+    const { buffer } = await generateHeroImage(draft.post.topic);
+    await sendDraftNotification(draft.post, buffer);
+    console.log("Existing draft re-sent to Telegram.");
   } else if (mode === "publish") {
     const draft = await readDraft();
     if (!draft) { console.log("No draft found."); return; }
