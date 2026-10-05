@@ -13,7 +13,8 @@ export const CONTENT_PILLARS: Record<string, string> = {
 export function getTopicPickerPrompt(
   previousTopics: string[],
   lastPillar: string | null,
-  research: string
+  research: string,
+  rejectedThisSession: string[] = []
 ): string {
   const pillarList = Object.entries(CONTENT_PILLARS)
     .map(([key, desc]) => `  - ${key}: ${desc}`)
@@ -22,6 +23,11 @@ export function getTopicPickerPrompt(
   const avoidSection =
     previousTopics.length > 0
       ? `\n\nPreviously published topics — do NOT repeat or create a closely similar angle for any of these:\n${previousTopics.map((t) => `- ${t}`).join("\n")}`
+      : "";
+
+  const rejectedSection =
+    rejectedThisSession.length > 0
+      ? `\n\nYou already suggested these topics in this same request and they were rejected as duplicates of a previously published post — pick something substantively different, not just a reworded title:\n${rejectedThisSession.map((t) => `- ${t}`).join("\n")}`
       : "";
 
   const pillarRotationSection = lastPillar
@@ -35,7 +41,7 @@ export function getTopicPickerPrompt(
   return `You are an SEO strategist for Dawn & Ron (dawnandron.com), a site that serves non-U.S. residents, remote entrepreneurs, digital nomads, and travel enthusiasts. The current year is ${CURRENT_YEAR} — all topic suggestions must be framed around ${CURRENT_YEAR} and must NOT reference ${CURRENT_YEAR - 1} as the current year.
 
 Generate ONE blog post topic. You must choose from one of these content pillars:
-${pillarList}${pillarRotationSection}${avoidSection}${researchSection}
+${pillarList}${pillarRotationSection}${avoidSection}${rejectedSection}${researchSection}
 
 The topic must:
 - Have strong SEO potential (specific, searchable, long-tail friendly)

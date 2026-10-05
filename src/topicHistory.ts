@@ -1,5 +1,7 @@
 const REPO = "porterpo/dawnandron-blog-agent";
 const HISTORY_PATH = "topics/history.json";
+// Written to a branch Railway does not watch, so updating history never triggers a redeploy. See draft.ts.
+const DATA_BRANCH = "data";
 
 export interface TopicEntry {
   topic: string;
@@ -17,7 +19,7 @@ function headers() {
 }
 
 async function fetchHistory(): Promise<{ entries: TopicEntry[]; sha?: string }> {
-  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${HISTORY_PATH}`, {
+  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${HISTORY_PATH}?ref=${DATA_BRANCH}`, {
     headers: headers(),
   });
   if (!response.ok) return { entries: [] };
@@ -54,6 +56,7 @@ export async function addTopicToHistory(topic: string, pillar: string): Promise<
     body: JSON.stringify({
       message: `topics: add "${topic}"`,
       content,
+      branch: DATA_BRANCH,
       ...(sha ? { sha } : {}),
     }),
   });

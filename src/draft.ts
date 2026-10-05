@@ -2,6 +2,9 @@ import type { GeneratedPost } from "./agent.js";
 
 const REPO = "porterpo/dawnandron-blog-agent";
 const DRAFT_PATH = "draft/pending.json";
+// Written to a branch Railway does not watch, so saving/deleting a draft never triggers a redeploy
+// that kills the container mid-generation. See topicHistory.ts for the same pattern.
+const DATA_BRANCH = "data";
 
 function headers() {
   return {
@@ -16,7 +19,7 @@ export async function saveDraft(post: GeneratedPost): Promise<void> {
   const content = Buffer.from(JSON.stringify(post, null, 2)).toString("base64");
 
   let sha: string | undefined;
-  const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/${DRAFT_PATH}`, {
+  const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/${DRAFT_PATH}?ref=${DATA_BRANCH}`, {
     headers: headers(),
   });
   if (existing.ok) {
@@ -30,6 +33,7 @@ export async function saveDraft(post: GeneratedPost): Promise<void> {
     body: JSON.stringify({
       message: `draft: ${post.title}`,
       content,
+      branch: DATA_BRANCH,
       ...(sha ? { sha } : {}),
     }),
   });
@@ -44,7 +48,7 @@ export interface DraftData {
 }
 
 export async function readDraft(): Promise<DraftData | null> {
-  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${DRAFT_PATH}`, {
+  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${DRAFT_PATH}?ref=${DATA_BRANCH}`, {
     headers: headers(),
   });
   if (!response.ok) {
@@ -65,7 +69,7 @@ export async function deleteDraft(sha: string): Promise<void> {
   await fetch(`https://api.github.com/repos/${REPO}/contents/${DRAFT_PATH}`, {
     method: "DELETE",
     headers: headers(),
-    body: JSON.stringify({ message: "chore: remove published draft", sha }),
+    body: JSON.stringify({ message: "chore: remove published draft", sha, branch: DATA_BRANCH }),
   });
   console.log("Draft removed from GitHub.");
 }
